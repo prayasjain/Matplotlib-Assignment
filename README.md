@@ -1,2 +1,2 @@
-# numerical_programming
-First project on github- Numerical Algorithms Assignment Python . 
+# Matplotlib Assignment
+Second project on github- Numerical Algorithms Graph Plotting Assignment Python . 
