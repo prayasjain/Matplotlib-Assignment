@@ -1,0 +1,210 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+objective=[1,3]
+constraint1=[10,5,4]
+constraint2=[(1,2),(1,0),(0,1)]
+
+class LPsolver():
+
+    def solve(self,a,b,c):
+        l_b=len(b)
+        l_a=len(a)
+        arr=np.array(c)
+        arr=np.concatenate((arr,np.identity(len(b))),1)
+        b=np.array(b)
+        x=[0]*l_a
+
+        arr=np.insert(arr,len(a)+l_b,b,1)
+        B=np.array([0]*l_b)
+        C=np.array(a+[0]*l_b)
+        bx=range(l_a,l_a+l_b)
+        while(1):
+
+            maxpos=[]
+            minpos=[]
+            for i in range(l_a+l_b):
+                maxpos.append(C[i]-np.dot(B,arr[:,i]))
+
+
+            c=maxpos.index(max(maxpos))
+
+            if maxpos[c]<=0:
+                break
+            for i in range(l_b):
+                if arr[i,c]!=0:
+                    minpos.append(arr[i,-1]/arr[i,c])
+                else:
+                    minpos.append(10000000000)
+            q=filter(lambda x:x>0,minpos)
+            if q==[]:
+                return "unbounded function"
+                break
+            r=minpos.index(min(q))
+
+            B[r]=C[c]
+            bx[r]=c
+            arr[r,:]=arr[r,:]/arr[r,c]
+            for i in range(l_b):
+                if(i!=r):
+                    arr[i,:]=arr[i,:]-(arr[i,c]/arr[r,c])*arr[r,:]
+
+        for i in range(len(bx)):
+            if bx[i]<l_a:
+                x[bx[i]]=arr[i,-1]
+
+        x.append(sum([x[i]*a[i] for i in range(l_a)]))
+        return x
+
+    def plot(self,a,b,c):
+
+
+        #finding the corner points of feasible region
+        Lp=[]
+        b1=b+[0,0]
+        c1=c+[(0,1),(1,0)]
+        for i in range(len(b1)):
+            for j in range(i+1,len(b1)):
+                if float(c1[j][0]*c1[i][1]-c1[i][0]*c1[j][1])!=0:
+                    y=(c1[j][0]*b1[i]-c1[i][0]*b1[j])/float(c1[j][0]*c1[i][1]-c1[i][0]*c1[j][1])
+                    x=(c1[i][1]*b1[j]-c1[j][1]*b1[i])/float(c1[j][0]*c1[i][1]-c1[i][0]*c1[j][1])
+                    temp=0
+                    for k in range(len(b1)):
+                        if (c1[k]==(0,1) or c1[k]==(1,0)) and b1[k]==0:
+                            if(c1[k][0]*x+c1[k][1]*y<b1[k]):
+                                temp=1
+                                break
+                        else:
+                            if(c1[k][0]*x+c1[k][1]*y>b1[k]):
+                                temp=1
+                                break
+                    if(temp==0 and x>=0 and y>=0):
+                        Lp.append([x,y])
+                        plt.plot(x,y,'ko')
+
+
+        #converting the list of points to cyclic for using fill function to colour feasible region
+        Lpcyclic=[Lp[0]]
+        tempL=[]
+        point=Lp[0]
+        Lp1=Lp[:]
+        Lp.remove(point)
+        while Lp!=[]:
+            for i in Lp:
+                for j in Lp1:
+                    if j!=i and j!=point:
+                        if float(point[0]-i[0])!=0:
+                            tempL.append(j[1]-i[1]-(point[1]-i[1])*(j[0]-i[0])/float(point[0]-i[0]))
+                        else:
+                            tempL.append(j[1]-i[1]-(point[1]-i[1])*(j[0]-i[0])*1e40)
+                if tempL==filter(lambda x:x>=0,tempL) or tempL==filter(lambda x:x<=0,tempL):
+                    point=i
+                    Lpcyclic.append(point)
+                    Lp.remove(i)
+                    tempL=[]
+                    break
+                tempL=[]
+
+
+        xlength=max([i[0] for i in Lpcyclic])
+        ylength=max([i[1] for i in Lpcyclic])
+        lineobj=[]
+        num_plots=len(b)
+        colormap = plt.cm.gist_ncar
+        plt.gca().set_color_cycle([colormap(i) for i in np.linspace(0.3, 0.9, num_plots)])
+        for i in range(len(b)):
+            if c[i][1]!=0:
+                X=np.linspace(-2,xlength+2,1000)
+                Y=map(lambda x:(b[i]-c[i][0]*x)/float(c[i][1]),X)
+                lineobj.extend(plt.plot(X,Y))
+            else:
+                print lineobj.extend([plt.vlines(b[i]/float(c[i][0]),-2,ylength+2)])
+        print lineobj
+        plt.hlines(0,-2,xlength+2,'r',linewidth=2.5)
+        plt.vlines(0,-2,ylength+2,'r',linewidth=2.5)
+        plt.xlabel('x axis')
+        plt.ylabel('y axis')
+        plt.title('Simplex algorithm')
+
+        labels=[]
+        for i in range(len(b)):
+            e=c[i][0]
+            d=c[i][1]
+            if e==1:e=''
+            if d==1:d=''
+            if e!=0 and d!=0:
+                labels.append('{}x+{}y={}'.format(e,d,b[i]))
+            elif e==0:
+                labels.append('{}y={}'.format(d,b[i]))
+            elif d==0:
+                labels.append('{}x={}'.format(e,b[i]))
+
+
+
+        plt.fill([i[0] for i in Lpcyclic],[i[1] for i in Lpcyclic],facecolor=plt.cm.gist_ncar(0.2))
+
+        l_b=len(b)
+        l_a=len(a)
+        arr=np.array(c)
+        arr=np.concatenate((arr,np.identity(len(b))),1)
+        b=np.array(b)
+        x=[0]*l_a
+
+        arr=np.insert(arr,len(a)+l_b,b,1)
+        B=np.array([0]*l_b)
+        C=np.array(a+[0]*l_b)
+        bx=range(l_a,l_a+l_b)
+        while(1):
+            for i in range(len(bx)):
+                if bx[i]<l_a:
+                    x[bx[i]]=arr[i,-1]
+            plt.plot(x[0],x[1],'bo',markersize=8)
+
+
+            maxpos=[]
+            minpos=[]
+            for i in range(l_a+l_b):
+                maxpos.append(C[i]-np.dot(B,arr[:,i]))
+
+
+            c=maxpos.index(max(maxpos))
+
+            if maxpos[c]<=0:
+                break
+            for i in range(l_b):
+                if arr[i,c]!=0:
+                    minpos.append(arr[i,-1]/arr[i,c])
+                else:
+                    minpos.append(10000000000)
+            q=filter(lambda x:x>0,minpos)
+            if q==[]:
+                return "unbounded function"
+                break
+            r=minpos.index(min(q))
+
+            B[r]=C[c]
+            bx[r]=c
+            arr[r,:]=arr[r,:]/arr[r,c]
+            for i in range(l_b):
+                if(i!=r):
+                    arr[i,:]=arr[i,:]-(arr[i,c]/arr[r,c])*arr[r,:]
+
+        for i in range(len(bx)):
+            if bx[i]<l_a:
+                x[bx[i]]=arr[i,-1]
+        plt.plot(x[0],x[1],'ro',markersize=8)
+
+
+
+
+        plt.legend(lineobj,labels,fancybox=True,shadow=True,loc='upper right')
+        plt.axis([-3,xlength+3,-3,ylength+3])
+        plt.grid(True)
+        plt.show()
+
+
+
+lps=LPsolver()
+solution=lps.solve(objective,constraint1,constraint2)
+print solution
+lps.plot(objective,constraint1,constraint2)
